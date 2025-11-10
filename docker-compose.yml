@@ -7,6 +7,8 @@ services:
   langfuse-worker:
     image: docker.io/langfuse/langfuse-worker:3
     restart: always
+    networks:
+      - langfuse-network
     depends_on: &langfuse-depends-on
       postgres:
         condition: service_healthy
@@ -69,6 +71,8 @@ services:
   langfuse-web:
     image: docker.io/langfuse/langfuse:3
     restart: always
+    networks:
+      - langfuse-network
     depends_on: *langfuse-depends-on
     ports:
       - 3000:3000
@@ -88,6 +92,8 @@ services:
   clickhouse:
     image: docker.io/clickhouse/clickhouse-server
     restart: always
+    networks:
+      - langfuse-network
     user: "101:101"
     environment:
       CLICKHOUSE_DB: default
@@ -109,6 +115,8 @@ services:
   minio:
     image: docker.io/minio/minio
     restart: always
+    networks:
+      - langfuse-network
     entrypoint: sh
     # create the 'langfuse' bucket before starting the service
     command: -c 'mkdir -p /data/langfuse && minio server --address ":9000" --console-address ":9001" /data'
@@ -130,6 +138,8 @@ services:
   redis:
     image: docker.io/redis:7
     restart: always
+    networks:
+      - langfuse-network
     # CHANGEME: row below to secure redis password
     command: >
       --requirepass ${REDIS_AUTH:-myredissecret}
@@ -144,6 +154,8 @@ services:
   postgres:
     image: docker.io/postgres:${POSTGRES_VERSION:-17}
     restart: always
+    networks:
+      - langfuse-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
@@ -159,6 +171,13 @@ services:
       - 127.0.0.1:5432:5432
     volumes:
       - langfuse_postgres_data:/var/lib/postgresql/data
+
+networks:
+  langfuse-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.11.0.0/16
 
 volumes:
   langfuse_postgres_data:
